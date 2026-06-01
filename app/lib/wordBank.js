@@ -1,4 +1,4 @@
-export const wordBank = [
+export const wordPairs = [
   { civilian: "Hiu", undercover: "Lumba-Lumba" },
   { civilian: "Kucing", undercover: "Harimau" },
   { civilian: "Anjing", undercover: "Serigala" },
