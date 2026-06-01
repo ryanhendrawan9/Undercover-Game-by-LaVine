@@ -1,22 +1,28 @@
-import { getRandomWordPair } from './wordBank';
+import { getRandomWordPair } from "./wordBank";
 
 export const ROLES = {
-  CIVILIAN: 'civilian',
-  UNDERCOVER: 'undercover',
-  MR_WHITE: 'mrwhite',
+  CIVILIAN: "civilian",
+  UNDERCOVER: "undercover",
+  MR_WHITE: "mrwhite",
 };
 
 export const PHASES = {
-  SETUP: 'setup',
-  WORD_REVEAL: 'word_reveal',
-  DISCUSSION: 'discussion',
-  VOTING: 'voting',
-  ELIMINATION: 'elimination',
-  MR_WHITE_GUESS: 'mrwhite_guess',
-  GAME_OVER: 'game_over',
+  SETUP: "setup",
+  WORD_REVEAL: "word_reveal",
+  DISCUSSION: "discussion",
+  VOTING: "voting",
+  ELIMINATION: "elimination",
+  MR_WHITE_GUESS: "mrwhite_guess",
+  GAME_OVER: "game_over",
 };
 
-export function createGame({ playerNames, numUndercover, numMrWhite, roundTime, customWords }) {
+export function createGame({
+  playerNames,
+  numUndercover,
+  numMrWhite,
+  roundTime,
+  customWords,
+}) {
   const wordPair = customWords
     ? { civilian: customWords.civilian, undercover: customWords.undercover }
     : getRandomWordPair();
@@ -41,11 +47,12 @@ export function createGame({ playerNames, numUndercover, numMrWhite, roundTime, 
     id: i,
     name,
     role: roles[i],
-    word: roles[i] === ROLES.CIVILIAN
-      ? wordPair.civilian
-      : roles[i] === ROLES.UNDERCOVER
-        ? wordPair.undercover
-        : null, // Mr. White gets null
+    word:
+      roles[i] === ROLES.CIVILIAN
+        ? wordPair.civilian
+        : roles[i] === ROLES.UNDERCOVER
+          ? wordPair.undercover
+          : null, // Mr. White gets null
     isEliminated: false,
     votes: 0,
   }));
@@ -64,25 +71,58 @@ export function createGame({ playerNames, numUndercover, numMrWhite, roundTime, 
 }
 
 export function checkWinCondition(players) {
-  const alive = players.filter(p => !p.isEliminated);
-  const aliveCivilians = alive.filter(p => p.role === ROLES.CIVILIAN);
-  const aliveUndercover = alive.filter(p => p.role === ROLES.UNDERCOVER);
-  const aliveMrWhite = alive.filter(p => p.role === ROLES.MR_WHITE);
+  const alive = players.filter((p) => !p.isEliminated);
 
-  const aliveNonCivilian = aliveUndercover.length + aliveMrWhite.length;
+  const aliveCivilians = alive.filter((p) => p.role === ROLES.CIVILIAN);
+  const aliveUndercover = alive.filter((p) => p.role === ROLES.UNDERCOVER);
+  const aliveMrWhite = alive.filter((p) => p.role === ROLES.MR_WHITE);
 
-  // Civilians win if all non-civilians eliminated
-  if (aliveNonCivilian === 0) return { winner: 'civilians', reason: 'Semua penyusup telah dieliminasi!' };
+  // ❗ 1. PRIORITAS: 1 vs 1 → Mr White Guess
+  if (
+    alive.length === 2 &&
+    aliveMrWhite.length === 1 &&
+    aliveCivilians.length === 1
+  ) {
+    return {
+      winner: null,
+      trigger: PHASES.MR_WHITE_GUESS,
+    };
+  }
 
-  // Non-civilians win if they equal or outnumber civilians
-  if (aliveNonCivilian >= aliveCivilians.length) return { winner: 'undercover', reason: 'Penyusup berhasil menguasai permainan!' };
+  // 🟢 2. Civilian menang → semua musuh mati
+  if (aliveUndercover.length === 0 && aliveMrWhite.length === 0) {
+    return {
+      winner: "civilians",
+      reason: "Semua musuh telah dieliminasi!",
+    };
+  }
+
+  // 🔴 3. Undercover vs Mr White (tidak ada civilian)
+  if (aliveUndercover.length > 0 && aliveCivilians.length === 0) {
+    return {
+      winner: "undercover",
+      reason: "Undercover mengalahkan Mr. White!",
+    };
+  }
+
+  // 🔴 4. Undercover menang (dominate)
+  if (
+    aliveUndercover.length > 0 &&
+    aliveMrWhite.length === 0 &&
+    aliveUndercover.length >= aliveCivilians.length
+  ) {
+    return {
+      winner: "undercover",
+      reason: "Undercover berhasil menguasai permainan!",
+    };
+  }
 
   return null;
 }
 
 export function calculateVotes(votingMap) {
   const voteCounts = {};
-  Object.values(votingMap).forEach(targetId => {
+  Object.values(votingMap).forEach((targetId) => {
     voteCounts[targetId] = (voteCounts[targetId] || 0) + 1;
   });
   return voteCounts;
@@ -93,16 +133,18 @@ export function getEliminatedPlayer(players, voteCounts) {
   let eliminated = null;
   let tie = false;
 
-  players.filter(p => !p.isEliminated).forEach(p => {
-    const votes = voteCounts[p.id] || 0;
-    if (votes > maxVotes) {
-      maxVotes = votes;
-      eliminated = p;
-      tie = false;
-    } else if (votes === maxVotes && votes > 0) {
-      tie = true;
-    }
-  });
+  players
+    .filter((p) => !p.isEliminated)
+    .forEach((p) => {
+      const votes = voteCounts[p.id] || 0;
+      if (votes > maxVotes) {
+        maxVotes = votes;
+        eliminated = p;
+        tie = false;
+      } else if (votes === maxVotes && votes > 0) {
+        tie = true;
+      }
+    });
 
   return { eliminated: tie ? null : eliminated, tie };
 }

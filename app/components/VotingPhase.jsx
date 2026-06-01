@@ -1,147 +1,298 @@
-'use client';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+"use client";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const S = {
+  ink: "#0D0D0D",
+  paper: "#F5F0E8",
+  crimson: "#C41E3A",
+  mist: "#8B9EB7",
+  shadow: "#1A1A2E",
+};
 
 export default function VotingPhase({ game, onSubmit }) {
-  const alivePlayers = game.players.filter(p => !p.isEliminated);
-  // votes: { voterId: targetId }
-  const [votes, setVotes] = useState({});
-  const [currentVoterIndex, setCurrentVoterIndex] = useState(0);
-  const [phase, setPhase] = useState('cover'); // cover | voting
+  const alivePlayers = game.players.filter((p) => !p.isEliminated);
+  const [selected, setSelected] = useState(undefined);
+  const [confirm, setConfirm] = useState(false);
 
-  const currentVoter = alivePlayers[currentVoterIndex];
-  const isLastVoter = currentVoterIndex === alivePlayers.length - 1;
-  const hasVoted = votes[currentVoter?.id] !== undefined;
-
-  const handleVote = (targetId) => {
-    if (targetId === currentVoter.id) return; // can't vote self
-    setVotes(v => ({ ...v, [currentVoter.id]: targetId }));
-  };
-
-  const handleNext = () => {
-    if (isLastVoter) {
-      onSubmit(votes);
-    } else {
-      setCurrentVoterIndex(i => i + 1);
-      setPhase('cover');
-    }
+  const handleSubmit = () => {
+    if (selected === undefined) return;
+    const votes = {};
+    alivePlayers.forEach((p) => {
+      if (p.id !== selected) votes[p.id] = selected;
+    });
+    onSubmit(votes);
   };
 
   return (
-    <div className="min-h-screen bg-ink flex flex-col px-5 pt-8 pb-6">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: S.ink,
+        display: "flex",
+        flexDirection: "column",
+        padding: "32px 20px 24px",
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-6"
+        style={{ textAlign: "center", marginBottom: 32 }}
       >
-        <p className="text-mist text-xs tracking-widest uppercase mb-1">Ronde {game.round}</p>
-        <h2 className="font-display text-3xl font-black text-paper">Voting</h2>
-        <p className="text-mist text-sm mt-1">Siapa yang harus dieliminasi?</p>
+        <p
+          style={{
+            color: S.mist,
+            fontSize: 11,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            marginBottom: 4,
+          }}
+        >
+          Ronde {game.round}
+        </p>
+        <h2
+          style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: 36,
+            fontWeight: 900,
+            color: S.paper,
+            margin: "0 0 6px",
+          }}
+        >
+          Voting
+        </h2>
+        <p style={{ color: S.mist, fontSize: 14, margin: 0 }}>
+          Diskusi selesai — siapa yang dieliminasi?
+        </p>
       </motion.div>
 
-      {/* Progress dots */}
-      <div className="flex justify-center gap-2 mb-8">
-        {alivePlayers.map((p, i) => (
-          <div
-            key={p.id}
-            className={`h-2 rounded-full transition-all ${
-              i < currentVoterIndex ? 'w-2 bg-crimson' :
-              i === currentVoterIndex ? 'w-6 bg-crimson' :
-              'w-2 bg-white/20'
-            }`}
-          />
-        ))}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        style={{
+          background: "rgba(196,30,58,0.07)",
+          border: "1px solid rgba(196,30,58,0.2)",
+          borderRadius: 14,
+          padding: "12px 16px",
+          marginBottom: 24,
+          textAlign: "center",
+        }}
+      >
+        <p style={{ color: S.mist, fontSize: 13, margin: 0 }}>
+          🗣 Diskusikan bersama, lalu pilih{" "}
+          <span style={{ color: S.paper, fontWeight: 600 }}>satu orang</span>{" "}
+          untuk dieliminasi
+        </p>
+      </motion.div>
+
+      <div
+        style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}
+      >
+        {alivePlayers.map((target, i) => {
+          const isSel = selected === target.id;
+          return (
+            <motion.button
+              key={target.id}
+              onClick={() => {
+                setSelected(target.id);
+                setConfirm(false);
+              }}
+              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.07 }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "16px 18px",
+                borderRadius: 18,
+                cursor: "pointer",
+                border: `1.5px solid ${isSel ? S.crimson : "rgba(255,255,255,0.08)"}`,
+                background: isSel ? "rgba(196,30,58,0.12)" : S.shadow,
+                transition: "all 0.2s",
+                fontFamily: "inherit",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  background: isSel ? S.crimson : "rgba(255,255,255,0.06)",
+                  border: `2px solid ${isSel ? S.crimson : "rgba(255,255,255,0.1)"}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s",
+                }}
+              >
+                <span style={{ fontWeight: 800, fontSize: 18, color: "#fff" }}>
+                  {target.name[0].toUpperCase()}
+                </span>
+              </div>
+
+              <span
+                style={{
+                  color: isSel ? S.paper : S.mist,
+                  fontSize: 20,
+                  fontWeight: isSel ? 700 : 400,
+                  flex: 1,
+                  transition: "all 0.2s",
+                }}
+              >
+                {target.name}
+              </span>
+
+              <AnimatePresence>
+                {isSel && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: S.crimson,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <span
+                      style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}
+                    >
+                      ✓
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          );
+        })}
       </div>
 
-      <AnimatePresence mode="wait">
-        {phase === 'cover' ? (
+      <AnimatePresence>
+        {selected !== undefined && !confirm && (
           <motion.div
-            key="cover"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            className="flex-1 flex flex-col items-center justify-center text-center"
-          >
-            <div className="w-20 h-20 rounded-full bg-shadow border border-crimson/20 flex items-center justify-center mb-4">
-              <span className="font-display text-2xl text-crimson font-black">
-                {currentVoter?.name[0].toUpperCase()}
-              </span>
-            </div>
-            <h3 className="font-display text-2xl text-paper font-bold mb-2">{currentVoter?.name}</h3>
-            <p className="text-mist text-sm mb-10">Giliran kamu untuk voting</p>
-            <motion.button
-              onClick={() => setPhase('voting')}
-              className="w-full max-w-xs py-4 bg-crimson rounded-2xl text-white font-bold text-lg"
-              whileTap={{ scale: 0.97 }}
-            >
-              Mulai Voting 🗳
-            </motion.button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="voting"
-            initial={{ opacity: 0, y: 20 }}
+            key="confirm-prompt"
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col"
+            exit={{ opacity: 0, y: 8 }}
+            style={{
+              marginTop: 20,
+              background: "rgba(196,30,58,0.08)",
+              border: "1px solid rgba(196,30,58,0.25)",
+              borderRadius: 16,
+              padding: "16px 20px",
+              textAlign: "center",
+            }}
           >
-            <p className="text-center text-mist text-sm mb-4">
-              <span className="text-paper font-medium">{currentVoter?.name}</span> memilih...
+            <p style={{ color: S.mist, fontSize: 14, marginBottom: 12 }}>
+              Eliminasi{" "}
+              <span style={{ color: S.crimson, fontWeight: 700, fontSize: 16 }}>
+                {alivePlayers.find((p) => p.id === selected)?.name}
+              </span>
+              ?
             </p>
-
-            <div className="space-y-3 flex-1">
-              {alivePlayers
-                .filter(p => p.id !== currentVoter?.id)
-                .map((target, i) => {
-                  const isSelected = votes[currentVoter?.id] === target.id;
-                  return (
-                    <motion.button
-                      key={target.id}
-                      onClick={() => handleVote(target.id)}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.06 }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                        isSelected
-                          ? 'bg-crimson/20 border-crimson text-paper'
-                          : 'bg-shadow border-white/10 text-mist hover:border-white/20'
-                      }`}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                        isSelected ? 'bg-crimson border-crimson' : 'bg-white/5 border-white/10'
-                      }`}>
-                        <span className="font-bold text-sm text-white">
-                          {target.name[0].toUpperCase()}
-                        </span>
-                      </div>
-                      <span className={`font-medium text-lg ${isSelected ? 'text-paper' : ''}`}>
-                        {target.name}
-                      </span>
-                      {isSelected && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="ml-auto text-crimson text-xl"
-                        >
-                          ✓
-                        </motion.span>
-                      )}
-                    </motion.button>
-                  );
-                })}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setSelected(undefined)}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  color: S.mist,
+                  fontSize: 15,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => setConfirm(true)}
+                style={{
+                  flex: 2,
+                  padding: "12px",
+                  background: S.crimson,
+                  border: "none",
+                  borderRadius: 12,
+                  color: "#fff",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Ya, Eliminasi!
+              </button>
             </div>
+          </motion.div>
+        )}
 
-            <motion.button
-              onClick={handleNext}
-              disabled={!hasVoted}
-              className={`w-full py-4 rounded-2xl font-bold text-lg mt-6 transition-all ${
-                hasVoted ? 'bg-crimson text-white' : 'bg-white/5 text-white/20 cursor-not-allowed'
-              }`}
-              whileTap={hasVoted ? { scale: 0.97 } : {}}
+        {confirm && (
+          <motion.div
+            key="confirmed"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{ marginTop: 20 }}
+          >
+            <button
+              onClick={handleSubmit}
+              style={{
+                width: "100%",
+                padding: "18px",
+                background: S.crimson,
+                border: "none",
+                borderRadius: 16,
+                color: "#fff",
+                fontSize: 18,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
             >
-              {isLastVoter ? 'Lihat Hasil' : 'Konfirmasi Vote →'}
-            </motion.button>
+              Konfirmasi — Eliminasi{" "}
+              {alivePlayers.find((p) => p.id === selected)?.name} ⚡
+            </button>
+          </motion.div>
+        )}
+
+        {selected === undefined && (
+          <motion.div
+            key="placeholder"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ marginTop: 20 }}
+          >
+            <div
+              style={{
+                width: "100%",
+                padding: "18px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 16,
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.2)",
+                  fontSize: 15,
+                  margin: 0,
+                }}
+              >
+                Pilih pemain dulu...
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
